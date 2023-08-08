@@ -1,5 +1,7 @@
-﻿using System.Diagnostics;
+﻿using OSMParser;
+using System.Diagnostics;
 using System.Xml;
+using System.Xml.Linq;
 
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
 
@@ -11,85 +13,36 @@ namespace OSM_test
 {
     internal class Program
     {
-        class Tag
-        {
-            public string? Key;
-            public string? Value;
-        }
 
-        class Node
-        {
-            public long Id;
-            public bool Visible;
-            public double Latitude;
-            public double Longitude;
-            public string? Timestamp;
-
-            public List<Tag> Tags = new();
-        }
 
         static void Main(string[] args)
         {
 
             string? osmPath = "C:\\Users\\Shadowfax\\Downloads\\map.osm";// Console.ReadLine();
 
-            XmlDocument? doc = new XmlDocument();
-            XmlElement? rootOsmElement = null;
-            
-            // Attempt to load xml and root OSM element
-            try
+
+
+            List<Tag> wayTags = new();
+            foreach (var way in ways)
             {
-                doc.Load(osmPath);
-                rootOsmElement = doc["osm"];
-            }
-            catch (Exception ex) 
-            {
-                Console.WriteLine(string.Format("{0} - {1}", ex.GetType().ToString(), ex.Message));
-                return;
+                wayTags.AddRange(way.Value.Tags);
             }
 
-            Dictionary<long, Node> nodes = new();
-
-            // Load nodes first
-            XmlNodeList nodesElementList = rootOsmElement.GetElementsByTagName("node");
-            foreach (XmlElement? nodeElement in nodesElementList)
+            Dictionary<string, int> tagCount = new();
+            foreach (var tag in wayTags)
             {
-                // Parse node
-                Node node = new Node()
+                if (!tagCount.ContainsKey(tag.Key))
                 {
-                    Id = Convert.ToInt64(nodeElement.Attributes["id"].Value),
-                    Visible = Convert.ToBoolean(nodeElement.Attributes["visible"].Value),
-                    Latitude = Convert.ToDouble(nodeElement.Attributes["lat"].Value),
-                    Longitude = Convert.ToDouble(nodeElement.Attributes["lon"].Value),
-                    Timestamp = nodeElement.Attributes["timestamp"].Value,
-                };
-
-                // Find any tags (if there are any)
-                XmlNodeList tagsList = nodeElement.GetElementsByTagName("tag");
-                foreach (XmlElement? tagElement in tagsList)
-                {
-                    node.Tags.Add(new Tag()
-                    {
-                        Key = tagElement.Attributes["k"].Value,
-                        Value = tagElement.Attributes["v"].Value,
-                    });
+                    tagCount.Add(tag.Key, 0);
                 }
 
-                //Console.WriteLine("-> Added {0}, {1} tags included", node.Id, node.Tags.Count);
-
-                // Add to collection
-                nodes.Add(
-                     Convert.ToInt64(nodeElement.Attributes["id"].Value), 
-                    node);
+                tagCount[tag.Key]++;
             }
 
-            List<Tag> tags = new List<Tag>();
-            foreach (Node n in nodes.Values)
+            foreach (var tag in tagCount)
             {
-                tags.AddRange(n.Tags);
+                Console.WriteLine("{0} - {1}", tag.Key, tag.Value);
             }
-
-            tags.DistinctBy(x => x.Key).ToList().ForEach(x => Console.WriteLine(x.Key));
 
             Console.ReadLine();
 
